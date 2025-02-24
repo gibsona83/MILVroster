@@ -11,13 +11,13 @@ st.set_page_config(page_title="MILV Physician Roster", page_icon="🏥", layout=
 # Load Excel file from GitHub raw URL
 GITHUB_FILE_URL = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILV%20-%20Provider%20Worksheet.xlsx"
 
-# ✅ Load Data Function (Ensures Data Loads Properly)
+# ✅ Load Data Function
 @st.cache_data(ttl=600)
 def load_data():
     try:
         st.write("Downloading data from GitHub...")
-        response = requests.get(GITHUB_FILE_URL, timeout=30)  # Increased timeout
-        response.raise_for_status()  # Check for request errors
+        response = requests.get(GITHUB_FILE_URL, timeout=30)
+        response.raise_for_status()
         df = pd.read_excel(BytesIO(response.content), sheet_name='Providers', engine='openpyxl')
         st.write("Data loaded successfully!")
         return df
@@ -25,16 +25,13 @@ def load_data():
         st.error(f"Error loading data: {e}")
         return None
 
-# ✅ Load data directly from GitHub
+# ✅ Load data from GitHub
 df = load_data()
 
-# ✅ Ensure Data Is Loaded Correctly
+# ✅ Ensure Data Is Loaded
 if df is None or df.empty:
     st.error("Failed to load data. Please check the GitHub source.")
     st.stop()
-
-# ✅ Debug: Show Column Names
-st.write("Column Names in DataFrame:", df.columns.tolist())
 
 # ✅ Fix NaN Values
 df = df.fillna("")
@@ -57,7 +54,7 @@ employment_type_options = sorted(df['Employment Type'].dropna().unique())
 df['Subspecialty'] = df['Subspecialty'].astype(str)
 all_subspecialties = set()
 for subspecialties in df['Subspecialty']:
-    all_subspecialties.update(map(str.strip, re.split(r'[,/]', subspecialties)))  # Split by comma or slash & strip spaces
+    all_subspecialties.update(map(str.strip, re.split(r'[,/]', subspecialties)))
 subspecialty_options = sorted(all_subspecialties)
 
 # ✅ Load and display the logo if available
@@ -121,4 +118,17 @@ if subspecialty:
     ]
 
 # ✅ Debug: Show First Few Rows After Filtering
-st.write("Dat
+st.write("Data Preview After Filtering:")
+st.write(filtered_df.head())
+
+# ✅ Display Filtered Data
+st.write(f"Showing {len(filtered_df)} of {len(df)} providers")
+
+if len(filtered_df) > 0:
+    st.data_editor(filtered_df, use_container_width=True, height=500)
+else:
+    st.warning("No matching providers found.")
+
+# ✅ Download Button
+csv = filtered_df.to_csv(index=False).encode('utf-8')
+st.download_button("Download Filtered Data", csv, "filtered_providers.csv", "text/csv")
