@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import re  # For regex cleaning of employment type
 
 # ✅ Must be the first Streamlit command!
 st.set_page_config(page_title="MILV Physician Roster", page_icon="🏥", layout="wide")
@@ -39,9 +40,19 @@ if missing_columns:
     st.error(f"Missing required columns: {', '.join(missing_columns)}")
     st.stop()
 
-# Get unique values for dropdowns
-employment_type_options = sorted(df['Employment Type'].dropna().unique())
-subspecialty_options = sorted(df['Subspecialty'].dropna().unique())
+# ✅ Cleaning Employment Type (removing content in brackets for filtering)
+df['Cleaned Employment Type'] = df['Employment Type'].astype(str).apply(lambda x: re.sub(r"\[.*?\]", "", x).strip())
+
+# ✅ Unique employment type options (cleaned version for dropdown)
+employment_type_options = sorted(df['Cleaned Employment Type'].dropna().unique())
+
+# ✅ Subspecialty Search Enhancement: Split multiple subspecialties separated by ',' or '/'
+df['Subspecialty'] = df['Subspecialty'].astype(str)
+all_subspecialties = set()
+for subspecialties in df['Subspecialty']:
+    all_subspecialties.update(map(str.strip, re.split(r'[,/]', subspecialties)))  # Split by comma or slash & strip spaces
+
+subspecialty_options = sorted(all_subspecialties)
 
 # Load and display the logo if available
 logo_path = "milv.png"
@@ -73,22 +84,31 @@ st.title("MILV Physician Roster")
 
 # Search & Filter Options
 search_name = st.text_input("Search by Provider Name", "")
+
+# ✅ Updated Employment Type Filter (using cleaned values)
 employment_type = st.multiselect("Filter by Employment Type", options=employment_type_options)
+
+# ✅ Updated Subspecialty Search (allows individual subspecialties)
 subspecialty = st.multiselect("Filter by Subspecialty", options=subspecialty_options)
 
 # Apply Filters
 filtered_df = df.copy()
 
+# ✅ Name Filtering
 if search_name:
     filtered_df = filtered_df[
         filtered_df['MILV Radiologist/Extender'].str.contains(search_name, case=False, na=False)
     ]
 
+# ✅ Employment Type Filtering (match original values)
 if employment_type:
-    filtered_df = filtered_df[filtered_df['Employment Type'].isin(employment_type)]
+    filtered_df = filtered_df[filtered_df['Cleaned Employment Type'].isin(employment_type)]
 
+# ✅ Subspecialty Filtering (match individual values)
 if subspecialty:
-    filtered_df = filtered_df[filtered_df['Subspecialty'].isin(subspecialty)]
+    filtered_df = filtered_df[
+        filtered_df['Subspecialty'].apply(lambda x: any(sub in x for sub in subspecialty))
+    ]
 
 # Display Data with Pagination Support
 st.write(f"Showing {len(filtered_df)} of {len(df)} providers")
