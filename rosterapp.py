@@ -9,16 +9,17 @@ st.set_page_config(page_title="MILV Physician Roster", page_icon="🏥", layout=
 import pandas as pd
 
 # Load Excel file from GitHub raw URL
-file_url = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILV%20-%20
+import pandas as pd
 
-# If the file doesn't exist, display a warning
-if not os.path.exists(file_path):
-    st.warning("⚠️ File not found! Please upload it manually.")
-    uploaded_file = st.file_uploader("Upload Provider Worksheet", type=["xlsx"])
-    if uploaded_file:
-        file_path = uploaded_file  # Use the uploaded file
-    else:
-        st.stop()  # Stop execution until a file is provided
+# Load Excel file from GitHub raw URL
+file_url = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILV%20-%20Provider%20Worksheet.xlsx"
+
+@st.cache_data
+def load_data():
+    df = pd.read_excel(file_url, sheet_name='Providers', engine='openpyxl')
+    return df
+
+df = load_data()
 
 # Function to load data
 @st.cache_data
