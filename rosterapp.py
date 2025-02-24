@@ -6,7 +6,10 @@ import os
 st.set_page_config(page_title="MILV Physician Roster", page_icon="🏥", layout="wide")
 
 # Set the correct file path
-file_path = r"C:\Users\aliso\OneDrive\Desktop\MILV\Dashboard\MILV - Provider Worksheet.xlsx"
+import pandas as pd
+
+# Load Excel file from GitHub raw URL
+file_url = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILV%20-%20
 
 # If the file doesn't exist, display a warning
 if not os.path.exists(file_path):
