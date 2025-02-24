@@ -15,11 +15,9 @@ GITHUB_FILE_URL = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/M
 @st.cache_data(ttl=600)
 def load_data():
     try:
-        st.write("Downloading data from GitHub...")
         response = requests.get(GITHUB_FILE_URL, timeout=30)
         response.raise_for_status()
         df = pd.read_excel(BytesIO(response.content), sheet_name='Providers', engine='openpyxl')
-        st.write("Data loaded successfully!")
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -97,10 +95,6 @@ subspecialty = st.multiselect("Filter by Subspecialty", options=subspecialty_opt
 # ✅ Apply Filters
 filtered_df = df.copy()
 
-# ✅ Debug: Show First Few Rows Before Filtering
-st.write("Data Preview Before Filtering:")
-st.write(df.head())
-
 # ✅ Name Filtering
 if search_name:
     filtered_df = filtered_df[
@@ -116,10 +110,6 @@ if subspecialty:
     filtered_df = filtered_df[
         filtered_df['Subspecialty'].apply(lambda x: any(sub in x for sub in subspecialty))
     ]
-
-# ✅ Debug: Show First Few Rows After Filtering
-st.write("Data Preview After Filtering:")
-st.write(filtered_df.head())
 
 # ✅ Display Filtered Data
 st.write(f"Showing {len(filtered_df)} of {len(df)} providers")
