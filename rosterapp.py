@@ -45,15 +45,25 @@ if missing_columns:
 # ✅ Clean "Employment Type" by removing brackets `[]`
 df['Employment Type'] = df['Employment Type'].astype(str).apply(lambda x: re.sub(r"\[.*?\]", "", x).strip())
 
-# ✅ Get Unique Filter Options
-employment_type_options = sorted(df['Employment Type'].dropna().unique())
-
-# ✅ Fix Subspecialties (Splitting by `,` or `/`)
+# ✅ Fix Subspecialties (Merging CT, PET, PETCT into PETCT)
 df['Subspecialty'] = df['Subspecialty'].astype(str)
+
+def normalize_subspecialties(subspecialty):
+    subs = re.split(r'[,/]', subspecialty)  # Split by comma or slash
+    subs = [s.strip() for s in subs]  # Remove spaces
+    subs = ["PETCT" if s in ["CT", "PET", "PETCT"] else s for s in subs]  # Merge CT, PET, PETCT into PETCT
+    return ", ".join(sorted(set(subs)))  # Remove duplicates and rejoin
+
+df['Subspecialty'] = df['Subspecialty'].apply(normalize_subspecialties)
+
+# ✅ Get Unique Subspecialty List After Merging
 all_subspecialties = set()
 for subspecialties in df['Subspecialty']:
-    all_subspecialties.update(map(str.strip, re.split(r'[,/]', subspecialties)))
+    all_subspecialties.update(subspecialties.split(', '))
 subspecialty_options = sorted(all_subspecialties)
+
+# ✅ Get Unique Employment Type List
+employment_type_options = sorted(df['Employment Type'].dropna().unique())
 
 # ✅ Load and display the logo if available
 logo_path = "milv.png"
