@@ -42,7 +42,7 @@ if missing_columns:
     st.error(f"Missing required columns: {', '.join(missing_columns)}")
     st.stop()
 
-# ✅ UI Styling
+# ✅ UI Styling - Improved for Dark Mode Visibility
 st.markdown(
     """
     <style>
@@ -53,10 +53,22 @@ st.markdown(
         .stTextInput, .stMultiSelect, .stDownloadButton {
             background-color: #ffffff !important;
             color: #002F6C !important;
+            border: 1px solid #cccccc !important;
         }
         h1 {
             color: #002F6C;
             font-weight: bold;
+        }
+        @media (prefers-color-scheme: dark) {
+            .stApp {
+                background-color: #121212 !important;
+                color: #ffffff !important;
+            }
+            .stTextInput, .stMultiSelect, .stDownloadButton {
+                background-color: #333333 !important;
+                color: #ffffff !important;
+                border: 1px solid #555555 !important;
+            }
         }
     </style>
     """,
