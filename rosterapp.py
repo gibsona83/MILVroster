@@ -3,13 +3,13 @@ import pandas as pd
 import os
 import re
 import requests
-from io import BytesIO
+from io import StringIO
 
 # ✅ Must be the first Streamlit command!
-st.set_page_config(page_title="MILV Physician Roster", page_icon="🏥", layout="wide")
+st.set_page_config(page_title="MILV Provider Directory", page_icon="🏥", layout="wide")
 
-# Load Excel file from GitHub raw URL
-GITHUB_FILE_URL = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILV%20-%20Provider%20Worksheet.xlsx"
+# Load CSV file from GitHub raw URL
+GITHUB_FILE_URL = "https://raw.githubusercontent.com/gibsona83/MILVroster/main/MILVProvider.csv"
 
 # ✅ Load Data Function
 @st.cache_data(ttl=600)
@@ -17,7 +17,7 @@ def load_data():
     try:
         response = requests.get(GITHUB_FILE_URL, timeout=30)
         response.raise_for_status()
-        df = pd.read_excel(BytesIO(response.content), sheet_name='Providers', engine='openpyxl')
+        df = pd.read_csv(StringIO(response.text))
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -42,34 +42,6 @@ if missing_columns:
     st.error(f"Missing required columns: {', '.join(missing_columns)}")
     st.stop()
 
-# ✅ Clean "Employment Type" by removing brackets `[]`
-df['Employment Type'] = df['Employment Type'].astype(str).apply(lambda x: re.sub(r"\[.*?\]", "", x).strip())
-
-# ✅ Fix Subspecialties (Merging CT, PET, PETCT into PETCT)
-df['Subspecialty'] = df['Subspecialty'].astype(str)
-
-def normalize_subspecialties(subspecialty):
-    subs = re.split(r'[,/]', subspecialty)  # Split by comma or slash
-    subs = [s.strip() for s in subs]  # Remove spaces
-    subs = ["PETCT" if s in ["CT", "PET", "PETCT"] else s for s in subs]  # Merge CT, PET, PETCT into PETCT
-    return ", ".join(sorted(set(subs)))  # Remove duplicates and rejoin
-
-df['Subspecialty'] = df['Subspecialty'].apply(normalize_subspecialties)
-
-# ✅ Get Unique Subspecialty List After Merging
-all_subspecialties = set()
-for subspecialties in df['Subspecialty']:
-    all_subspecialties.update(subspecialties.split(', '))
-subspecialty_options = sorted(all_subspecialties)
-
-# ✅ Get Unique Employment Type List
-employment_type_options = sorted(df['Employment Type'].dropna().unique())
-
-# ✅ Load and display the logo if available
-logo_path = "milv.png"
-if os.path.exists(logo_path):
-    st.image(logo_path, width=300)
-
 # ✅ UI Styling
 st.markdown(
     """
@@ -91,31 +63,32 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title("MILV Physician Roster")
+st.title("MILV Provider Directory")
 
 # ✅ Search & Filter Options
 search_name = st.text_input("Search by Provider Name", "")
 
-# ✅ Employment Type Filter (Uses Cleaned Data)
+# ✅ Get Unique Employment Type List
+employment_type_options = sorted(df['Employment Type'].dropna().unique())
 employment_type = st.multiselect("Filter by Employment Type", options=employment_type_options)
 
-# ✅ Subspecialty Search (Supports Individual Filtering)
+# ✅ Get Unique Subspecialty List
+subspecialty_options = sorted(set(
+    sub for subs in df['Subspecialty'] for sub in subs.split(', ')
+))
 subspecialty = st.multiselect("Filter by Subspecialty", options=subspecialty_options)
 
 # ✅ Apply Filters
 filtered_df = df.copy()
 
-# ✅ Name Filtering
 if search_name:
     filtered_df = filtered_df[
         filtered_df['MILV Radiologist/Extender'].str.contains(search_name, case=False, na=False)
     ]
 
-# ✅ Employment Type Filtering
 if employment_type:
     filtered_df = filtered_df[filtered_df['Employment Type'].isin(employment_type)]
 
-# ✅ Subspecialty Filtering
 if subspecialty:
     filtered_df = filtered_df[
         filtered_df['Subspecialty'].apply(lambda x: any(sub in x for sub in subspecialty))
